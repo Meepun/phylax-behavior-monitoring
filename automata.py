@@ -23,3 +23,5 @@ def get_automaton_json():
             for k, v in automaton["transitions"].items()
         ]
     }
+
+# experiment4
