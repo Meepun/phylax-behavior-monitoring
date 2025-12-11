@@ -24,9 +24,18 @@ socket.on("chat", (data) => {
     chatLog.scrollTop = chatLog.scrollHeight;
 });
 
+// eto ung logs saa baba nung diagram
 socket.on("behavior_update", (data) => {
     const log = document.getElementById("behavior-log");
-    log.textContent += `Action: ${data.action} | State: ${data.state} | Behavior: ${data.behavior}\n`;
+    
+    const entry = document.createElement("div");
+    entry.textContent = `Action: ${data.action} | State: ${data.state} | Behavior: ${data.behavior}`;
+    
+    if (data.behavior === "normal") entry.style.color = "lime";
+    else if (data.behavior === "suspicious") entry.style.color = "orange";
+    else if (data.behavior === "malicious") entry.style.color = "red";
+    
+    log.appendChild(entry);
     log.scrollTop = log.scrollHeight;
 
     renderFSM(data.states, data.transitions, data.state);
