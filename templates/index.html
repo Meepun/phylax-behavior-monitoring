@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Phylax Cybersecurity Monitor</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+
+    <script src="/static/mermaid.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+    <script>
+        mermaid.initialize({ startOnLoad: false });
+    </script>
+</head>
+
+<body>
+
+    <h1>Phylax Cybersecurity Monitor</h1>
+
+    <div class="container">
+
+        <!-- Terminal -->
+        <div class="panel">
+            <h2>Real-Time Terminal</h2>
+            <div id="terminal" class="terminal"></div>
+
+            <div class="input-row">
+                <input id="actionInput" placeholder="Enter user action...">
+                <button onclick="sendAction()">Send</button>
+            </div>
+        </div>
+
+        <!-- Automata Diagram -->
+        <div class="panel">
+            <h2>Automaton Diagram</h2>
+            <div id="diagram" class="diagram"></div>
+        </div>
+
+    </div>
+
+    <script src="/static/js/script.js"></script>
+
+</body>
+</html>
+
