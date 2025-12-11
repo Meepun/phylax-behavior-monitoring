@@ -12,27 +12,25 @@
 
     <h1>Phylax</h1>
 
-    <div class="container">
-
-        <!-- Terminal -->
-        <div class="panel">
-            <h2>Real-Time Terminal</h2>
-            <div id="terminal" class="terminal"></div>
-
-            <div class="input-row">
-                <input id="actionInput" placeholder="Enter user action...">
-                <button onclick="sendAction()">Send</button>
+    <div class="app-container">
+        <!-- Left: Messaging -->
+        <div class="chat-panel">
+            <div class="chat-header">User Messaging Simulator</div>
+            <div id="chat-log" class="chat-log"></div>
+            <div class="chat-input">
+                <input id="messageInput" placeholder="Type your action/message..."/>
+                <button onclick="sendMessage()">Send</button>
             </div>
         </div>
 
-        <!-- automata diagram chuchu-->
-        <div class="panel">
-            <h2>Sumtn Diagram</h2>
+        <!-- Right: FSM Diagram -->
+        <div class="diagram-panel">
+            <div class="diagram-header">FSM / Behavior Diagram</div>
             <div id="diagram" class="diagram"></div>
         </div>
-
     </div>
 
+    <script src="/static/js/d3.min.js"></script>
     <script src="/static/js/script.js"></script>
 
 </body>

@@ -1,31 +1,47 @@
 const socket = io();
 
-function sendAction() {
-    const action = document.getElementById("actionInput").value;
-    if (!action) return;
-    socket.emit("send_action", { action });
-    document.getElementById("actionInput").value = "";
+function sendMessage() {
+    const msg = document.getElementById("messageInput").value;
+    if (!msg) return;
+
+    // Add to chat log immediately
+    const chatLog = document.getElementById("chat-log");
+    const div = document.createElement("div");
+    div.classList.add("message");
+    div.textContent = `You: ${msg}`;
+    chatLog.appendChild(div);
+    chatLog.scrollTop = chatLog.scrollHeight;
+
+    socket.emit("send_action", { action: msg });
+    document.getElementById("messageInput").value = "";
 }
 
+// Receive log messages from server sumtn idk
 socket.on("log", (data) => {
-    const term = document.getElementById("terminal");
-    term.textContent += data.text + "\n";
-    term.scrollTop = term.scrollHeight;
+    const chatLog = document.getElementById("chat-log");
+    const div = document.createElement("div");
+    div.classList.add("message");
+    div.textContent = data.text;
+    chatLog.appendChild(div);
+    chatLog.scrollTop = chatLog.scrollHeight;
 });
 
-// D3.js rendering function idk
+// Receive FSM data and render
+socket.on("diagram", (auto) => {
+    renderFSM(auto.states, auto.transitions, auto.current);
+});
+
+// D3.js rendering
 function renderFSM(states, transitions, currentState) {
     d3.select("#diagram").selectAll("*").remove();
+    const width = document.getElementById("diagram").clientWidth;
+    const height = document.getElementById("diagram").clientHeight;
 
-    const width = 600, height = 400;
-
-    const svg = d3.select("#diagram")
-                  .append("svg")
+    const svg = d3.select("#diagram").append("svg")
                   .attr("width", width)
                   .attr("height", height);
 
-    // Map states to nodes with positions
-    const nodes = states.map((s, i) => ({ id: s, x: 100 + i * 150, y: height/2 }));
+    const nodes = states.map((s, i) => ({ id: s, x: 100 + i*150, y: height/2 }));
     const links = transitions.map(t => ({
         source: t.from,
         target: t.to,
@@ -45,7 +61,7 @@ function renderFSM(states, transitions, currentState) {
        .attr("stroke-width", 2)
        .attr("marker-end", "url(#arrow)");
 
-    // Draw arrowhead
+    // Arrowhead
     svg.append("defs").append("marker")
        .attr("id", "arrow")
        .attr("viewBox", "0 0 10 10")
@@ -68,7 +84,7 @@ function renderFSM(states, transitions, currentState) {
        .attr("r", 25)
        .attr("fill", d => d.id === currentState ? "red" : "steelblue");
 
-    // Draw labels
+    // Node labels
     svg.selectAll("text")
        .data(nodes)
        .enter()
