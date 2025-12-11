@@ -14,21 +14,25 @@ def index():
 def handle_action(data):
     action = data["action"]
 
-    # Automaton transition
+    # Apply action in automaton
     new_state = apply_action(action)
 
-    # Prolog reasoning
-    add_action(action)
-    behavior = classify_behavior()
+    # Classify behavior with Prolog
+    add_action(action)  # optional: store action history
+    behavior = classify_behavior(action)
 
-    # Broadcast real-time logs
-    emit("log", {
-        "text": f"Action: {action}\nState: {new_state}\nBehavior: {behavior}"
-    }, broadcast=True)
+    # Get full FSM JSON for frontend
+    automaton_json = get_automaton_json()
 
-    # Update diagram
-    emit("diagram", get_automaton_json(), broadcast=True)
+    emit("behavior_update", {
+        "action": action,
+        "state": new_state,
+        "behavior": behavior,
+        "states": automaton_json["states"],
+        "transitions": automaton_json["transitions"]
+    })
+
+    emit("chat", {"text": f"System: processed action '{action}'"}, broadcast=True)
 
 if __name__ == "__main__":
     socketio.run(app, debug=True)
-

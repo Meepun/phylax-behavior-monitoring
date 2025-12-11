@@ -1,10 +1,11 @@
 const socket = io();
 
+// Send chat message
 function sendMessage() {
     const msg = document.getElementById("messageInput").value;
     if (!msg) return;
 
-    // Add to chat log immediately
+    // Add to chat log
     const chatLog = document.getElementById("chat-log");
     const div = document.createElement("div");
     div.classList.add("message");
@@ -16,8 +17,8 @@ function sendMessage() {
     document.getElementById("messageInput").value = "";
 }
 
-// Receive log messages from server sumtn idk
-socket.on("log", (data) => {
+// Chat log from server (other users or system messages)
+socket.on("chat", (data) => {
     const chatLog = document.getElementById("chat-log");
     const div = document.createElement("div");
     div.classList.add("message");
@@ -26,42 +27,32 @@ socket.on("log", (data) => {
     chatLog.scrollTop = chatLog.scrollHeight;
 });
 
-// Receive FSM data and render
-socket.on("diagram", (auto) => {
-    renderFSM(auto.states, auto.transitions, auto.current);
+// Behavior log + FSM updates idk bruh
+socket.on("behavior_update", (data) => {
+    // Update behavior log under diagram
+    const log = document.getElementById("behavior-log");
+    log.textContent += `Action: ${data.action} | State: ${data.state} | Behavior: ${data.behavior}\n`;
+    log.scrollTop = log.scrollHeight;
+
+    // Update FSM diagram
+    renderFSM(data.states, data.transitions, data.state);
 });
 
-// D3.js rendering
+// ----------------- D3.js FSM rendering ----------------- ewan ko
 function renderFSM(states, transitions, currentState) {
     d3.select("#diagram").selectAll("*").remove();
     const width = document.getElementById("diagram").clientWidth;
     const height = document.getElementById("diagram").clientHeight;
 
-    const svg = d3.select("#diagram").append("svg")
+    const svg = d3.select("#diagram")
+                  .append("svg")
                   .attr("width", width)
                   .attr("height", height);
 
-    const nodes = states.map((s, i) => ({ id: s, x: 100 + i*150, y: height/2 }));
-    const links = transitions.map(t => ({
-        source: t.from,
-        target: t.to,
-        label: t.label
-    }));
+    const nodes = states.map(s => ({ id: s }));
+    const links = transitions.map(t => ({ source: t.from, target: t.to, label: t.label }));
 
-    // Draw links
-    svg.selectAll("line")
-       .data(links)
-       .enter()
-       .append("line")
-       .attr("x1", d => nodes.find(n => n.id === d.source).x)
-       .attr("y1", d => nodes.find(n => n.id === d.source).y)
-       .attr("x2", d => nodes.find(n => n.id === d.target).x)
-       .attr("y2", d => nodes.find(n => n.id === d.target).y)
-       .attr("stroke", "white")
-       .attr("stroke-width", 2)
-       .attr("marker-end", "url(#arrow)");
-
-    // Arrowhead
+    // Arrowhead for links
     svg.append("defs").append("marker")
        .attr("id", "arrow")
        .attr("viewBox", "0 0 10 10")
@@ -69,30 +60,77 @@ function renderFSM(states, transitions, currentState) {
        .attr("refY", 5)
        .attr("markerWidth", 6)
        .attr("markerHeight", 6)
-       .attr("orient", "auto-start-reverse")
+       .attr("orient", "auto")
        .append("path")
-       .attr("d", "M0,0 L10,5 L0,10 z")
+       .attr("d", "M0,0 L10,5 L0,10 Z")
        .attr("fill", "white");
 
+    const simulation = d3.forceSimulation(nodes)
+                         .force("link", d3.forceLink(links).id(d => d.id).distance(150))
+                         .force("charge", d3.forceManyBody().strength(-500))
+                         .force("center", d3.forceCenter(width / 2, height / 2));
+
+    // Draw links
+    const link = svg.selectAll("line")
+                    .data(links)
+                    .enter()
+                    .append("line")
+                    .attr("stroke", "white")
+                    .attr("stroke-width", 2)
+                    .attr("marker-end", "url(#arrow)");
+
     // Draw nodes
-    svg.selectAll("circle")
-       .data(nodes)
-       .enter()
-       .append("circle")
-       .attr("cx", d => d.x)
-       .attr("cy", d => d.y)
-       .attr("r", 25)
-       .attr("fill", d => d.id === currentState ? "red" : "steelblue");
+    const node = svg.selectAll("circle")
+                    .data(nodes)
+                    .enter()
+                    .append("circle")
+                    .attr("r", 25)
+                    .attr("fill", d => d.id === currentState ? "red" : "steelblue")
+                    .call(d3.drag()
+                        .on("start", dragstarted)
+                        .on("drag", dragged)
+                        .on("end", dragended));
 
     // Node labels
-    svg.selectAll("text")
-       .data(nodes)
-       .enter()
-       .append("text")
-       .text(d => d.id)
-       .attr("x", d => d.x)
-       .attr("y", d => d.y + 5)
-       .attr("text-anchor", "middle")
-       .attr("fill", "white")
-       .attr("font-size", "14px");
+    const labels = svg.selectAll("text")
+                      .data(nodes)
+                      .enter()
+                      .append("text")
+                      .text(d => d.id)
+                      .attr("fill", "white")
+                      .attr("text-anchor", "middle")
+                      .attr("dy", 5)
+                      .attr("pointer-events", "none");
+
+    // Tick simulation
+    simulation.on("tick", () => {
+        link.attr("x1", d => d.source.x)
+            .attr("y1", d => d.source.y)
+            .attr("x2", d => d.target.x)
+            .attr("y2", d => d.target.y);
+
+        node.attr("cx", d => d.x)
+            .attr("cy", d => d.y);
+
+        labels.attr("x", d => d.x)
+              .attr("y", d => d.y);
+    });
+
+    // Drag functions
+    function dragstarted(event, d) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+    }
+
+    function dragged(event, d) {
+        d.fx = event.x;
+        d.fy = event.y;
+    }
+
+    function dragended(event, d) {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+    }
 }
