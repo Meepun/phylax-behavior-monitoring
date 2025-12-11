@@ -1,7 +1,6 @@
 from flask import Flask, render_template
 from flask_socketio import SocketIO, emit
 from automata import apply_action, get_automaton_json
-from prolog_engine import add_action, classify_behavior
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -14,16 +13,19 @@ def index():
 def handle_action(data):
     action = data["action"]
 
-    # Apply action in automaton
+    # Update FSM using automata.py
     new_state = apply_action(action)
-
-    # Classify behavior with Prolog
-    add_action(action)  # optional: store action history
-    behavior = classify_behavior(action)
-
-    # Get full FSM JSON for frontend
     automaton_json = get_automaton_json()
 
+    # TEMP: simple behavior logic
+    if action.lower() in ["hi", "hello"]:
+        behavior = "normal"
+    elif len(action) > 10:
+        behavior = "suspicious"
+    else:
+        behavior = "normal"
+
+    # Emit to frontend
     emit("behavior_update", {
         "action": action,
         "state": new_state,
@@ -31,8 +33,6 @@ def handle_action(data):
         "states": automaton_json["states"],
         "transitions": automaton_json["transitions"]
     })
-
-    emit("chat", {"text": f"System: processed action '{action}'"}, broadcast=True)
 
 if __name__ == "__main__":
     socketio.run(app, debug=True)

@@ -2,9 +2,9 @@ automaton = {
     "states": ["S0", "S1", "S2", "BLOCKED"],
     "current_state": "S0",
     "transitions": {
-        ("S0", "login"): "S1",
-        ("S1", "open_file"): "S2",
-        ("S2", "login_admin"): "BLOCKED"
+        ("S0", "hi"): "S1",
+        ("S1", "bruh"): "S2",
+        ("S2", "reset"): "S0"
     }
 }
 
@@ -23,4 +23,3 @@ def get_automaton_json():
             for k, v in automaton["transitions"].items()
         ]
     }
-
