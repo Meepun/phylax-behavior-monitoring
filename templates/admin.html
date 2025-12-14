@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Automaton Monitor</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+  <h2>Automaton State</h2>
+  <pre id="log"></pre>
+
+  <script>
+    const socket = io();
+
+    socket.on("behavior_update", data => {
+      const log = document.getElementById("log");
+      log.textContent +=
+        `Action: ${data.action}\nState: ${data.state}\n\n`;
+    });
+  </script>
+</body>
+</html>
