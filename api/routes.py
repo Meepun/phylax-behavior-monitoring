@@ -97,7 +97,7 @@ def process_message():
     message_id = f"msg_{uuid.uuid4().hex}"
     cursor.execute("""
         INSERT INTO messages (
-            message_id, session_id, message_index, message,
+            message_id, session_id, message_index, message_text,
             sent_time, sent_hour, prev_5min_count, curr_5min_count,
             previous_formality, current_formality, off_platform_detected
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
