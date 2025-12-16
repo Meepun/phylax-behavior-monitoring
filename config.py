@@ -1,0 +1,1 @@
+# pinalagay lng ni gpt sa project structure idk
