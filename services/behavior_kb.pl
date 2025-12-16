@@ -1,4 +1,12 @@
-# knowledge base for behavior monitoring
+% ============================
+% DYNAMIC KNOWLEDGE
+% ============================
+:- dynamic message/2.
+:- dynamic off_platform_request_fact/1.
+:- dynamic message_index/2.
+:- dynamic sent_hour/2.
+:- dynamic previous_formality/2.
+:- dynamic current_formality/2.
 
 % ============================
 % STATIC KNOWLEDGE
@@ -73,6 +81,10 @@ off_platform_request(Msg) :-
     off_platform_keyword(K),
     sub_string(Text, _, _, _, K).
 
+% Facts asserted at runtime are stored here
+record_off_platform_request(Msg) :-
+    assertz(off_platform_request_fact(Msg)).
+
 % Early contact violation: first 3 messages
 early_off_platform_contact(Msg) :-
     message_index(Msg, Index),
@@ -88,13 +100,11 @@ authority_impersonation(Msg) :-
     authority_keyword(K),
     sub_string(Text, _, _, _, K).
 
-
 % ============================
 % CATEGORY-LEVEL MAPPINGS
 % ============================
 
 % Behavioral violations
-
 behavioral_violation(Msg, sudden_message_frequency) :-
     sudden_message_frequency(Msg).
 
@@ -102,12 +112,10 @@ behavioral_violation(Msg, abrupt_formality_change) :-
     abrupt_formality_change(Msg).
 
 % Temporal violations
-
 temporal_violation(Msg, odd_hour_messaging) :-
     odd_hour_message(Msg).
 
 % Interaction-based violations
-
 interaction_violation(Msg, early_off_platform_contact) :-
     early_off_platform_contact(Msg).
 
