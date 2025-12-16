@@ -63,3 +63,5 @@ conn.commit()
 conn.close()
 
 print("Database created: phylax.db")
+
+# no need to run again unless needed idk asdfghjkl
