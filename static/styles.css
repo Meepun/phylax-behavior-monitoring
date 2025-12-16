@@ -1,0 +1,25 @@
+.node circle {
+  stroke: #2d3436;
+  stroke-width: 2px;
+}
+
+.node text {
+  fill: rgb(0, 0, 0);
+  font-size: 14px;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  pointer-events: none;
+}
+
+.link {
+  fill: none;
+  stroke: #0984e3;
+  stroke-width: 2px;
+  marker-end: url(#arrow);
+}
+
+.link-text {
+  font-size: 12px;
+  fill: #2d3436;
+  pointer-events: none;
+}

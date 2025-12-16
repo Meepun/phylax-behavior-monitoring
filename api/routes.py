@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask import Flask, send_from_directory
 from datetime import datetime
 from services.prolog_engine import PrologEngine
 from models.session import SessionState
@@ -140,4 +141,52 @@ def process_message():
         "status": "ok",
         "session_state": session.state,
         "violations": violations
+    })
+
+# ---------- STATE DIAGRAM STUFF SUMTN ----------
+@api_blueprint.route("/session/<user_id>/state_diagram", methods=["GET"])
+def get_state_diagram(user_id):
+    """
+    Returns the states and transitions for the user's session in JSON,
+    so it can be visualized as a state diagram on the frontend.
+    """
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # Get the latest session for this user
+    cursor.execute(
+        "SELECT session_id, current_state FROM sessions WHERE user_id=? ORDER BY started_at DESC LIMIT 1",
+        (user_id,)
+    )
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"error": "No session found for this user"}), 404
+
+    session_id = row["session_id"]
+
+    # Get all state transitions for this session
+    cursor.execute(
+        "SELECT from_state, to_state, triggered_by FROM state_transitions WHERE session_id=? ORDER BY transition_id ASC",
+        (session_id,)
+    )
+    transitions_rows = cursor.fetchall()
+    conn.close()
+
+    # Extract unique states
+    states = set()
+    transitions = []
+    for t in transitions_rows:
+        states.add(t["from_state"])
+        states.add(t["to_state"])
+        transitions.append({
+            "from": t["from_state"],
+            "to": t["to_state"],
+            "triggered_by": t["triggered_by"].split(", ") if t["triggered_by"] else []
+        })
+
+    return jsonify({
+        "states": list(states),
+        "transitions": transitions,
+        "current_state": row["current_state"]
     })
