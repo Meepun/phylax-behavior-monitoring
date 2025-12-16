@@ -34,29 +34,30 @@ class PrologEngine:
         def assertz(fact):
             self.prolog.assertz(fact)
 
-        # Message
-        assertz(f'message({msg_id}, "{ctx["message"].lower()}")')
+        # Normalize message text
+        normalized_message = ctx["message"].lower().strip()
+
+        # Assert the message fact (used for authority impersonation + interaction rules)
+        assertz(f'message({msg_id}, "{normalized_message}")')
 
         # Behavioral
-        assertz(f'message_count_last_minute({msg_id}, {ctx.get("message_count_last_minute", 1)})')
-        assertz(f'average_message_count({msg_id}, {ctx.get("average_message_count", 1)})')
-
-        # Style
-        if ctx.get("previous_style"):
-            assertz(f'previous_style({msg_id}, {ctx["previous_style"]})')
-        if ctx.get("current_style"):
-            assertz(f'current_style({msg_id}, {ctx["current_style"]})')
+        assertz(f'prev_5min_count({msg_id}, {ctx.get("prev_5min_count", 0)})')
+        assertz(f'curr_5min_count({msg_id}, {ctx.get("curr_5min_count", 0)})')
+        if ctx.get("previous_formality"):
+            assertz(f'previous_formality({msg_id}, {ctx["previous_formality"]})')
+        if ctx.get("current_formality"):
+            assertz(f'current_formality({msg_id}, {ctx["current_formality"]})')
 
         # Temporal
         if ctx.get("sent_hour") is not None:
             assertz(f'sent_hour({msg_id}, {ctx["sent_hour"]})')
 
         # Interaction
-        if ctx.get("asked_off_platform"):
-            assertz(f'asked_off_platform({msg_id})')
+        if ctx.get("message_index") is not None:
+            assertz(f'message_index({msg_id}, {ctx["message_index"]})')
+        if ctx.get("off_platform_request"):
+            assertz(f'off_platform_request({msg_id})')
 
-        if ctx.get("ignored_previous_reply"):
-            assertz(f'ignored_previous_reply({msg_id})')
 
     def _query_violations(self, msg_id):
         results = self.prolog.query(f"violation({msg_id}, V)")
