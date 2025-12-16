@@ -1,3 +1,5 @@
+# Prolog bridge ONLY
+
 from pyswip import Prolog
 import uuid
 import os
@@ -49,7 +51,8 @@ class PrologEngine:
 
         # Temporal facts
         if "sent_hour" in ctx:
-            assertz(f'sent_hour({msg_id}, {ctx["sent_hour"]})')
+            hour = int(ctx["sent_hour"])
+            assertz(f'sent_hour({msg_id}, {hour})')
 
         # Interaction facts
         if "message_index" in ctx:

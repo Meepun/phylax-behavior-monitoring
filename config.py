@@ -1,1 +1,1 @@
-# pinalagay lng ni gpt sa project structure idk
+DEBUG_CONTEXT_ENDPOINT = True   # set to False in production
