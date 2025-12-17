@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 
 class SessionAutomata:
     DECAY_COUNT = 5            # Clean messages needed
-    DECAY_WINDOW_MINUTES = 10  # Minutes to wait after being flagged
+    DECAY_WINDOW_MINUTES = 1  # Minutes to wait after being flagged. Set to 1min for demo
     TZ = ZoneInfo("Asia/Manila")
 
     STATE_THRESHOLDS = {
