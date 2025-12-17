@@ -80,6 +80,11 @@ def process_message():
     # ----------------------------
     violations = prolog_engine.analyze_message(context)
     violations = list(set(violations))
+    
+    # ----------------------------
+    # Store last violations in session
+    # ----------------------------
+    session.last_violations = violations
 
     # ----------------------------
     # Update session automata
@@ -200,10 +205,12 @@ def get_state(user_id):
     if not session or not session.automata:
         return jsonify({
             "state": "NORMAL",
-            "score": 0
+            "score": 0,
+            "violations": []  # Add empty list if no session
         })
 
     return jsonify({
         "state": session.automata.state,
-        "score": session.automata.score
+        "score": session.automata.score,
+        "violations": getattr(session, "last_violations", [])
     })

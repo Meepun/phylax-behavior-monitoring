@@ -86,6 +86,16 @@ nodes.append("text")
   .attr("paint-order", "stroke"); 
   
 
+// empty text element for violations (will be updated dynamically)
+nodes.append("text")
+  .attr("class", "violations")
+  .attr("text-anchor", "middle")
+  .attr("y", 90) // 60 radius + 30 padding below circle
+  .selectAll("tspan")
+  .data([])  // start empty
+  .enter()
+  .append("tspan");
+
 // -----------------------------
 // Dynamic User ID Handling
 // -----------------------------
@@ -97,12 +107,44 @@ document.getElementById("update-user-btn").addEventListener("click", () => {
   updateState();
 });
 
+function formatViolation(violation) {
+  return violation
+    .split("_")             // split by underscore
+    .map(word => word[0].toUpperCase() + word.slice(1)) // capitalize each word
+    .join(" ");             // join with spaces
+}
+
+
 // Highlight current state and display violations
-function highlightState(state, violations=[]) {
+function highlightState(state, violations = []) {
+  // Highlight the circle
   nodes.selectAll("circle")
     .attr("fill", d => d === state ? STATE_COLORS[state] : "#555");
 
+  // Update state label text
   document.getElementById("state-text").textContent = state;
+
+  // Clear previous violations
+  nodes.selectAll("text.violations").selectAll("*").remove();
+
+  // Select the active node
+  const activeNode = nodes.filter(d => d === state);
+
+  // Add tspans for each violation
+  activeNode.select("text.violations")
+    .selectAll("tspan")
+    .data(violations)
+    .enter()
+    .append("tspan")
+    .attr("x", 0)          // center horizontally
+    .attr("dy", (d, i) => i === 0 ? 0 : 20) // line spacing
+    .text(d => formatViolation(d))
+    .attr("fill", "#fff")
+    .attr("font-size", "14px")
+    .attr("font-weight", "bold")
+    .attr("stroke", "#000")
+    .attr("stroke-width", 2)
+    .attr("paint-order", "stroke");
 }
 
 // Fetch current state every 2 seconds
