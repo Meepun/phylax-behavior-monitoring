@@ -4,7 +4,6 @@ from pyswip import Prolog
 import uuid
 import os
 
-
 class PrologEngine:
     def __init__(self):
         self.prolog = Prolog()
