@@ -1,9 +1,17 @@
+# routes.py
 from flask import Blueprint, request, jsonify
 from datetime import datetime
-from services.prolog_engine import PrologEngine
-from models.session import SessionState
+from zoneinfo import ZoneInfo
 
-# Store sessions in memory (example)
+from services.prolog_engine import PrologEngine
+from services.analyzer import MessageAnalyzer
+
+from config import DEBUG_CONTEXT_ENDPOINT
+
+from models.session import SessionState
+from models.automata import SessionAutomata
+
+# In-memory session storage
 sessions = {}
 
 # Violation weights
@@ -16,66 +24,144 @@ WEIGHT_MAP = {
 }
 
 api_blueprint = Blueprint("api", __name__)
-prolog_engine = PrologEngine()  # KB loaded here
+prolog_engine = PrologEngine()  # Load knowledge base once
 
+
+# ======================================================
+# MAIN MESSAGE PROCESSING ENDPOINT
+# ======================================================
 @api_blueprint.route("/message", methods=["POST"])
 def process_message():
-    data = request.json
+    data = request.json or {}
+
     user_id = data.get("user_id")
     message = data.get("message")
     timestamp = data.get("timestamp")
+    sent_hour_override = data.get("sent_hour")
 
     if not user_id or not message:
         return jsonify({"error": "user_id and message required"}), 400
 
+    # ----------------------------
     # Get or create session
+    # ----------------------------
     session = sessions.get(user_id)
     if not session:
         session = SessionState(user_id)
+        session.automata = SessionAutomata()
         sessions[user_id] = session
 
-    # Process message timestamp
-    sent_time = datetime.utcfromtimestamp(timestamp / 1000) if timestamp else datetime.utcnow()
-    
-    # Determine message index for interaction rules
-    msg_index = len(session.messages) + 1 if hasattr(session, "messages") else 1
+    # ----------------------------
+    # Determine message time & hour
+    # ----------------------------
+    tz = ZoneInfo("Asia/Manila")
 
-    # Context for Prolog assertions
-    context = {
-        "message": message,
-        "message_index": msg_index,
-        "sent_hour": sent_time.hour,
-        "prev_5min_count": 0,  # Placeholder, update if you have real metrics
-        "curr_5min_count": 1,  # Placeholder, update if you have real metrics
-        "previous_formality": 0,
-        "current_formality": 0,
-        "off_platform_request": any(k in message.lower() for k in [
-            "telegram","whatsapp","viber","call me","text me","email me","pm me","dm me"
-        ])
-    }
+    if sent_hour_override is not None:
+        sent_hour = int(sent_hour_override)
+        sent_time = datetime.now(tz)
+    elif timestamp:
+        sent_time = datetime.fromtimestamp(timestamp / 1000, tz=tz)
+        sent_hour = sent_time.hour
+    else:
+        sent_time = datetime.now(tz)
+        sent_hour = sent_time.hour
 
-    # Analyze message using PrologEngine
+    # ----------------------------
+    # Build analyzer context
+    # ----------------------------
+    context = MessageAnalyzer.build_context(
+        message_text=message,
+        session=session,
+        sent_time=sent_time,
+        sent_hour=sent_hour
+    )
+
+    # ----------------------------
+    # Prolog analysis
+    # ----------------------------
     violations = prolog_engine.analyze_message(context)
 
-    # Update session
+    # ----------------------------
+    # Update automata
+    # ----------------------------
     if violations:
         for v in violations:
-            session.add_violation(WEIGHT_MAP.get(v, 1))
+            session.automata.add_violation(WEIGHT_MAP.get(v, 1))
     else:
-        session.add_clean_message()
+        session.automata.add_clean_message()
 
-    # Store message (optional, for session tracking)
-    if not hasattr(session, "messages"):
-        session.messages = []
-    session.messages.append({
-        "message": message,
-        "timestamp": sent_time,
+    # ----------------------------
+    # Store message history
+    # ----------------------------
+    session.add_message(
+        message_text=message,
+        formality=context["current_formality"],
+        off_platform=context["off_platform_request"],
+        sent_time=sent_time
+    )
+
+    return jsonify({
+        "status": "ok",
+        "session_state": session.automata.state,
+        "score": session.automata.score,
+        "sent_hour": sent_hour,
         "violations": violations
     })
 
-    # Return response
+
+# ======================================================
+# DEBUG CONTEXT ENDPOINT (NO PROLOG, NO AUTOMATA)
+# ======================================================
+@api_blueprint.route("/debug/context", methods=["POST"])
+def debug_context():
+    if not DEBUG_CONTEXT_ENDPOINT:
+        return jsonify({"error": "Debug endpoint disabled"}), 403
+
+    data = request.json or {}
+
+    user_id = data.get("user_id")
+    message = data.get("message")
+    timestamp = data.get("timestamp")
+    sent_hour_override = data.get("sent_hour")
+
+    if not user_id or not message:
+        return jsonify({"error": "user_id and message required"}), 400
+
+    # ----------------------------
+    # Get or create session
+    # ----------------------------
+    session = sessions.get(user_id)
+    if not session:
+        session = SessionState(user_id)
+        session.automata = SessionAutomata()
+        sessions[user_id] = session
+
+    # ----------------------------
+    # Determine message time & hour
+    # ----------------------------
+    tz = ZoneInfo("Asia/Manila")
+
+    if sent_hour_override is not None:
+        sent_hour = int(sent_hour_override)
+        sent_time = datetime.now(tz)
+    elif timestamp:
+        sent_time = datetime.fromtimestamp(timestamp / 1000, tz=tz)
+        sent_hour = sent_time.hour
+    else:
+        sent_time = datetime.now(tz)
+        sent_hour = sent_time.hour
+
+    # ----------------------------
+    # Build context ONLY
+    # ----------------------------
+    context = MessageAnalyzer.build_context(
+        message_text=message,
+        session=session,
+        sent_time=sent_time,
+        sent_hour=sent_hour
+    )
+
     return jsonify({
-        "status": "ok",
-        "session_state": session.state,
-        "violations": violations
+        "status": "debug",
+        "context": context
     })
