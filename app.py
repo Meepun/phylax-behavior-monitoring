@@ -1,5 +1,6 @@
 from flask import Flask, render_template
 from flask_cors import CORS
+from flask_socketio import SocketIO
 from api.routes import api_blueprint
 from flask import Blueprint
 
@@ -9,15 +10,20 @@ frontend = Blueprint("frontend", __name__)
 def index():
     return render_template("index.html")
 
-def create_app():
-    app = Flask(__name__)
-    CORS(app)
+app = Flask(__name__)
 
-    app.register_blueprint(api_blueprint, url_prefix="/api")
-    app.register_blueprint(frontend)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-    return app
+socketio = SocketIO(
+    app,
+    cors_allowed_origins="*"
+)
+
+app.register_blueprint(api_blueprint, url_prefix="/api")
+
+@socketio.on("send_message")
+def handle_message(data):
+    socketio.emit("receive_message", data, include_self=False)
 
 if __name__ == "__main__":
-    app = create_app()
-    app.run(debug=True)
+    socketio.run(app, host="0.0.0.0", port=5001, debug=True)
