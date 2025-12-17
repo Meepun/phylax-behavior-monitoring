@@ -4,7 +4,7 @@
 }
 
 .node text {
-  fill: rgb(0, 0, 0);
+  fill: white;
   font-size: 14px;
   text-anchor: middle;
   dominant-baseline: middle;
