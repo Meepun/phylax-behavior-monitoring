@@ -155,6 +155,7 @@ async function updateState() {
 
     highlightState(data.state || "NORMAL", data.violations || []);
     document.getElementById("user-id-text").textContent = USER_ID;
+    document.getElementById("score-text").textContent = data.score ?? 0;
   } catch (err) {
     console.error(err);
   }
