@@ -16,10 +16,9 @@ sessions = {}
 
 # Violation weights
 WEIGHT_MAP = {
-    "sudden_message_frequency": 3,
     "abrupt_formality_change": 2,
     "odd_hour_messaging": 1,
-    "early_off_platform_contact": 4,
+    "early_off_platform_contact": 3,
     "authority_impersonation": 5
 }
 
@@ -80,15 +79,35 @@ def process_message():
     # Prolog analysis
     # ----------------------------
     violations = prolog_engine.analyze_message(context)
+    violations = list(set(violations))
 
     # ----------------------------
-    # Update automata
+    # Update session automata
     # ----------------------------
     if violations:
-        for v in violations:
-            session.automata.add_violation(WEIGHT_MAP.get(v, 1))
+        violations = [str(v) for v in violations]
+        non_supporting = [v for v in violations if v != "odd_hour_messaging"]
+
+        if non_supporting:
+            # At least one real violation exists
+            for v in violations:
+                if v == "odd_hour_messaging":
+                    if non_supporting:
+                        session.automata.add_violation(
+                            WEIGHT_MAP.get(v, 1),
+                            message_time=sent_time  # Pass timestamp here
+                        )
+                else:
+                    session.automata.add_violation(
+                        WEIGHT_MAP.get(v, 1),
+                        message_time=sent_time  # Pass timestamp here
+                    )
+        else:
+            # Only odd-hour → count as clean for decay but still list in violations
+            session.automata.add_clean_message(message_time=sent_time)
     else:
-        session.automata.add_clean_message()
+        # No violations → normal clean message
+        session.automata.add_clean_message(message_time=sent_time)
 
     # ----------------------------
     # Store message history

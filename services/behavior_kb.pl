@@ -95,15 +95,6 @@ contraction("don't").
 % ============================
 
 % ----------------------------
-% Behavioral: Message frequency
-% ----------------------------
-sudden_message_frequency(Msg) :-
-    prev_5min_count(Msg, Prev),
-    curr_5min_count(Msg, Curr),
-    Prev >= 1,
-    Curr >= Prev * 3.
-
-% ----------------------------
 % Behavioral: Formality shift (bidirectional)
 % ----------------------------
 abrupt_formality_change(Msg) :-
@@ -171,9 +162,6 @@ authority_impersonation(Msg) :-
 % ============================
 % CATEGORY-LEVEL MAPPINGS
 % ============================
-behavioral_violation(Msg, sudden_message_frequency) :-
-    sudden_message_frequency(Msg).
-
 behavioral_violation(Msg, abrupt_formality_change) :-
     abrupt_formality_change(Msg).
 

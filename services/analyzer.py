@@ -51,8 +51,6 @@ class MessageAnalyzer:
         now = sent_time or datetime.now(timezone.utc)
         sent_hour = sent_hour if sent_hour is not None else now.hour
 
-        prev_5min = self.session.prev_5min_count(now)
-        curr_5min = self.session.curr_5min_count(now)
         last_formality = self.session.get_last_formality()
 
         off_platform_request = any(
@@ -65,8 +63,6 @@ class MessageAnalyzer:
             "message": message_text,
             "message_index": self.session.message_index() + 1,
             "sent_hour": sent_hour,
-            "prev_5min_count": prev_5min,
-            "curr_5min_count": curr_5min,
             "previous_formality": last_formality,
             "current_formality": current_formality,
             "off_platform_request": off_platform_request

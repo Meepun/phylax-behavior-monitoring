@@ -3,73 +3,73 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 class SessionAutomata:
-    """
-    Handles session state transitions and score decay based on messages.
-    """
+    DECAY_COUNT = 5            # Clean messages needed
+    DECAY_WINDOW_MINUTES = 10  # Minutes to wait after being flagged
+    TZ = ZoneInfo("Asia/Manila")
 
-    DECAY_COUNT = 5            # Number of clean messages needed for decay
-    DECAY_WINDOW_MINUTES = 10  # Time window in minutes to count clean messages for decay
-    TZ = ZoneInfo("Asia/Manila")  # default timezone for decay calculations
+    STATE_THRESHOLDS = {
+        "NORMAL": 0,
+        "FLAGGED_ONCE": 4,
+        "FLAGGED_TWICE": 7,
+        "LOCKED": 10
+    }
 
     def __init__(self):
         self.score = 0
         self.state = "NORMAL"
         self.clean_message_count = 0
-        self.clean_window_start = None
+        self.last_flag_time = None  # Timestamp of last violation that caused flag
 
     # -------------------------
     # Violation Handling
     # -------------------------
-    def add_violation(self, weight: int):
+    def add_violation(self, weight: int, message_time: datetime = None):
         """Increase score due to a violation and reset decay tracking."""
         self.score += weight
         self._reset_decay()
+        self.last_flag_time = message_time or datetime.now(self.TZ)  # set flag time for decay
         self._update_state()
+
 
     # -------------------------
     # Decay Handling
     # -------------------------
     def add_clean_message(self, message_time: datetime = None):
-        """
-        Process a clean message, possibly triggering score decay.
-        message_time: aware datetime in the TZ zone
-        """
         now = message_time or datetime.now(self.TZ)
+        self.clean_message_count += 1
 
-        if self.clean_window_start is None:
-            self.clean_window_start = now
-            self.clean_message_count = 1
-        else:
-            self.clean_message_count += 1
+        if self.state in ["FLAGGED_ONCE", "FLAGGED_TWICE"]:
+            if self.last_flag_time:
+                elapsed = now - self.last_flag_time
+                if (elapsed >= timedelta(minutes=self.DECAY_WINDOW_MINUTES) and
+                    self.clean_message_count >= self.DECAY_COUNT):
 
-        if self._can_decay(now):
-            self.score = max(0, self.score - 1)
-            self.clean_message_count = 0
-            self.clean_window_start = None
+                    # Reduce to previous state's minimum threshold
+                    if self.state == "FLAGGED_TWICE":
+                        self.score = self.STATE_THRESHOLDS["FLAGGED_ONCE"]
+                    elif self.state == "FLAGGED_ONCE":
+                        self.score = self.STATE_THRESHOLDS["NORMAL"]
+
+                    self.clean_message_count = 0
+                    self.last_flag_time = now  # reset timer to now for next decay
 
         self._update_state()
 
-    def _can_decay(self, now: datetime) -> bool:
-        """Check if decay conditions are met."""
-        return (
-            self.clean_message_count >= self.DECAY_COUNT and
-            now - self.clean_window_start <= timedelta(minutes=self.DECAY_WINDOW_MINUTES)
-        )
-
+    # -------------------------
+    # Reset decay counter after a violation
+    # -------------------------
     def _reset_decay(self):
-        """Reset decay tracking after a violation."""
         self.clean_message_count = 0
-        self.clean_window_start = None
 
     # -------------------------
     # State Updates
     # -------------------------
     def _update_state(self):
-        if self.score >= 10:
+        if self.score >= self.STATE_THRESHOLDS["LOCKED"]:
             self.state = "LOCKED"
-        elif self.score >= 7:
+        elif self.score >= self.STATE_THRESHOLDS["FLAGGED_TWICE"]:
             self.state = "FLAGGED_TWICE"
-        elif self.score >= 4:
+        elif self.score >= self.STATE_THRESHOLDS["FLAGGED_ONCE"]:
             self.state = "FLAGGED_ONCE"
         else:
             self.state = "NORMAL"
