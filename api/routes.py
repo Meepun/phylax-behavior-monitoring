@@ -184,3 +184,26 @@ def debug_context():
         "status": "debug",
         "context": context
     })
+
+
+# ======================================================
+# AUTOMATA STATE FETCH ENDPOINT (FOR FRONTEND DIAGRAM)
+# ======================================================
+@api_blueprint.route("/state/<user_id>", methods=["GET"])
+def get_state(user_id):
+    """
+    Returns the current automata state for visualization.
+    This endpoint is polled by the frontend.
+    """
+    session = sessions.get(user_id)
+
+    if not session or not session.automata:
+        return jsonify({
+            "state": "NORMAL",
+            "score": 0
+        })
+
+    return jsonify({
+        "state": session.automata.state,
+        "score": session.automata.score
+    })
