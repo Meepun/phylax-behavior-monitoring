@@ -1,7 +1,7 @@
 # session.py
 from datetime import datetime
 from zoneinfo import ZoneInfo
-
+from typing import Optional
 
 class SessionState:
     """
@@ -24,7 +24,7 @@ class SessionState:
         message_text: str,
         formality: int = 0,
         off_platform: bool = False,
-        sent_time: datetime | None = None,
+        sent_time: Optional[datetime] = None,
     ):
         """
         Persist a processed message with metadata.
