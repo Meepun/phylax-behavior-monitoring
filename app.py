@@ -1,7 +1,14 @@
-from flask import Flask
+from flask import Flask, render_template
 from flask_cors import CORS
 from flask_socketio import SocketIO
 from api.routes import api_blueprint
+from flask import Blueprint
+
+frontend = Blueprint("frontend", __name__) 
+
+@frontend.route("/")
+def index():
+    return render_template("index.html")
 
 app = Flask(__name__)
 

@@ -80,6 +80,11 @@ def process_message():
     # ----------------------------
     violations = prolog_engine.analyze_message(context)
     violations = list(set(violations))
+    
+    # ----------------------------
+    # Store last violations in session
+    # ----------------------------
+    session.last_violations = violations
 
     # ----------------------------
     # Update session automata
@@ -183,4 +188,29 @@ def debug_context():
     return jsonify({
         "status": "debug",
         "context": context
+    })
+
+
+# ======================================================
+# AUTOMATA STATE FETCH ENDPOINT (FOR FRONTEND DIAGRAM)
+# ======================================================
+@api_blueprint.route("/state/<user_id>", methods=["GET"])
+def get_state(user_id):
+    """
+    Returns the current automata state for visualization.
+    This endpoint is polled by the frontend.
+    """
+    session = sessions.get(user_id)
+
+    if not session or not session.automata:
+        return jsonify({
+            "state": "NORMAL",
+            "score": 0,
+            "violations": []  # Add empty list if no session
+        })
+
+    return jsonify({
+        "state": session.automata.state,
+        "score": session.automata.score,
+        "violations": getattr(session, "last_violations", [])
     })
